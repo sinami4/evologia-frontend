@@ -16,9 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- URL БЭКЕНДА ---
     const backendUrl = 'https://evologia-backend.onrender.com'; 
 
-    let allSavedArticlesData = []; 
+    let allSavedArticlesData = []; // Для хранения данных всех загруженных с бэкенда статей
 
-    // --- ПРОВЕРКА ЭЛЕМЕНТОВ ---
+    // --- ПРОВЕРКА ЭЛЕМЕНТОВ (для отладки) ---
     if (!searchInput) console.error('EvoLogia: Поле поиска "queryInput" не найдено.');
     if (!searchSection) console.warn('EvoLogia: Секция "search-section" не найдена.');
     if (!savedArticlesSection) console.warn('EvoLogia: Секция "saved-articles-section" не найдена.');
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ФУНКЦИЯ УПРАВЛЕНИЯ ВИДИМОСТЬЮ ОСНОВНЫХ СЕКЦИЙ ---
     function showView(viewName) { 
-        console.log(`Переключение вида на: ${viewName}`);
+        console.log(`EvoLogia: Переключение вида на: ${viewName}`);
         if (searchSection) searchSection.style.display = 'none';
         if (savedArticlesSection) savedArticlesSection.style.display = 'none';
         if (generatorControls) generatorControls.style.display = 'none';
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (viewName === 'fullArticle' || viewName === 'generating') {
             if (searchSection && viewName === 'generating' && searchInput && searchInput.value) {
                  searchSection.style.display = 'block';
-            } else if (viewName === 'fullArticle') { // Поиск не нужен при просмотре полной статьи
+            } else if (viewName === 'fullArticle') { 
                  if(searchSection) searchSection.style.display = 'none';
             }
             if (newArticleOutput) newArticleOutput.style.display = 'block'; 
@@ -67,74 +67,168 @@ document.addEventListener('DOMContentLoaded', function() {
         return itemDiv;
     }
 
-    // --- ФУНКЦИЯ ЗАГРУЗКИ И ОТОБРАЖЕНИЯ ПОЛНОЙ СТАТЬИ ---
+    // --- ФУНКЦИЯ ОТОБРАЖЕНИЯ ОДНОГО КОММЕНТАРИЯ ---
+    function renderCommentItem(commentData) {
+        const commentDiv = document.createElement('div');
+        commentDiv.classList.add('comment-item');
+        const authorP = document.createElement('p');
+        authorP.classList.add('comment-author');
+        authorP.innerHTML = `<strong>${commentData.author_name || 'Аноним'}</strong> <span class="comment-date">(${new Date(commentData.created_at).toLocaleString()})</span>:`;
+        const textP = document.createElement('p');
+        textP.classList.add('comment-text');
+        textP.textContent = commentData.text;
+        commentDiv.appendChild(authorP);
+        commentDiv.appendChild(textP);
+        return commentDiv;
+    }
+
+    // --- ФУНКЦИЯ ЗАГРУЗКИ И ОТОБРАЖЕНИЯ ПОЛНОЙ СТАТЬИ И КОММЕНТАРИЕВ ---
     async function displayFullArticle(articleId) {
-        if (!newArticleOutput || !loadingIndicator) return;
-        showView('generating'); // Показываем область вывода, индикатор появится ниже
-        loadingIndicator.textContent = 'Загрузка полной статьи...';
+        if (!newArticleOutput || !loadingIndicator) {
+            console.error("EvoLogia: Отсутствуют элементы для отображения полной статьи.");
+            return;
+        }
+        showView('generating'); 
+        loadingIndicator.textContent = 'Загрузка статьи и комментариев...';
         loadingIndicator.style.display = 'block';
-        newArticleOutput.innerHTML = ''; // Очищаем перед загрузкой
+        newArticleOutput.innerHTML = ''; 
         try {
-            const response = await fetch(`${backendUrl}/api/articles/${articleId}`);
-            if (!response.ok) { 
-                let errorText = `Ошибка загрузки статьи ${articleId}: ${response.status}`;
-                try { const errorData = await response.json(); errorText = errorData.error ? `${errorData.error} (Статус: ${response.status})` : errorText; } catch (e) {}
+            console.log(`EvoLogia: Запрос полной статьи ID: ${articleId}`);
+            const articleResponse = await fetch(`${backendUrl}/api/articles/${articleId}`);
+            if (!articleResponse.ok) {
+                let errorText = `Ошибка загрузки статьи ${articleId}: ${articleResponse.status}`;
+                try { const errorData = await articleResponse.json(); errorText = errorData.error ? `${errorData.error} (Статус: ${articleResponse.status})` : errorText; } catch (e) {}
                 throw new Error(errorText);
             }
-            const fullArticleData = await response.json();
+            const fullArticleData = await articleResponse.json();
+            console.log('EvoLogia: Полная статья получена:', fullArticleData);
             let articleHtml = `<h2>${fullArticleData.title}</h2>` + fullArticleData.content_html;
             newArticleOutput.innerHTML = articleHtml; 
+            const commentsSectionDiv = document.createElement('div');
+            commentsSectionDiv.id = 'comments-section';
+            commentsSectionDiv.innerHTML = '<h3>Комментарии:</h3>'; 
+            const commentsListDiv = document.createElement('div');
+            commentsListDiv.id = 'comments-list';
+            commentsSectionDiv.appendChild(commentsListDiv);
+            const hrBeforeComments = document.createElement('hr');
+            hrBeforeComments.style.marginTop = '25px';
+            hrBeforeComments.style.marginBottom = '20px';
+            newArticleOutput.appendChild(hrBeforeComments); 
+            newArticleOutput.appendChild(commentsSectionDiv);
+            console.log(`EvoLogia: Запрос комментариев для статьи ID: ${articleId}`);
+            try {
+                const commentsResponse = await fetch(`${backendUrl}/api/articles/${articleId}/comments`);
+                if (!commentsResponse.ok) {
+                    console.warn(`EvoLogia: Не удалось загрузить комментарии: ${commentsResponse.status}`);
+                    commentsListDiv.innerHTML = '<p style="color: #777; font-style: italic;">Не удалось загрузить комментарии.</p>';
+                } else {
+                    const commentsData = await commentsResponse.json();
+                    console.log('EvoLogia: Комментарии получены:', commentsData);
+                    if (commentsData && Array.isArray(commentsData) && commentsData.length > 0) {
+                        commentsData.forEach(comment => {
+                            commentsListDiv.appendChild(renderCommentItem(comment));
+                        });
+                    } else {
+                        commentsListDiv.innerHTML = '<p class="no-comments-yet" style="color: #777; font-style: italic;">Комментариев пока нет. Будьте первым!</p>';
+                    }
+                }
+            } catch (commentsError) {
+                console.error('EvoLogia: Ошибка при загрузке комментариев:', commentsError);
+                commentsListDiv.innerHTML = `<p style="color: red;">Ошибка загрузки комментариев: ${commentsError.message}</p>`;
+            }
+            const addCommentForm = document.createElement('form');
+            addCommentForm.id = 'add-comment-form';
+            addCommentForm.innerHTML = `<h4>Оставить комментарий:</h4><div><label for="commentAuthorName">Ваше имя (необязательно):</label><input type="text" id="commentAuthorName" name="author_name" maxlength="100"></div><div><label for="commentText">Комментарий:</label><textarea id="commentText" name="text" rows="4" required></textarea></div><button type="submit" id="submitCommentButton">Отправить комментарий</button>`;
+            commentsSectionDiv.appendChild(addCommentForm); 
+            addCommentForm.addEventListener('submit', async function(event) {
+                event.preventDefault(); 
+                const authorNameInput = document.getElementById('commentAuthorName');
+                const commentTextInput = document.getElementById('commentText');
+                const author = authorNameInput.value.trim();
+                const text = commentTextInput.value.trim();
+                if (!text) { alert('Пожалуйста, введите текст комментария.'); return; }
+                const submitButton = document.getElementById('submitCommentButton');
+                if(submitButton) submitButton.disabled = true;
+                try {
+                    const response = await fetch(`${backendUrl}/api/articles/${articleId}/comments`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ author_name: author, text: text })
+                    });
+                    if (!response.ok) { let errorText = `Ошибка отправки комментария: ${response.status}`; try { const errorData = await response.json(); errorText = errorData.error || errorText; } catch (e) {} throw new Error(errorText); }
+                    const newCommentData = await response.json();
+                    console.log('EvoLogia: Комментарий добавлен:', newCommentData.comment);
+                    const noCommentsYetP = commentsListDiv.querySelector('p.no-comments-yet');
+                    if(noCommentsYetP) noCommentsYetP.remove();
+                    commentsListDiv.appendChild(renderCommentItem(newCommentData.comment));
+                    authorNameInput.value = '';
+                    commentTextInput.value = '';
+                } catch (error) { console.error('EvoLogia: Ошибка при отправке комментария:', error); alert(`Не удалось отправить комментарий: ${error.message}`);} 
+                finally { if(submitButton) submitButton.disabled = false; }
+            });
             const backButton = document.createElement('button');
-            backButton.id = 'evoBackToListButton'; 
-            backButton.textContent = '‹ Назад к списку статей';
-            backButton.style.display = 'block'; 
-            backButton.style.margin = '20px auto'; 
-            backButton.style.padding = '10px 20px';
-            backButton.style.fontSize = '16px';
-            backButton.style.cursor = 'pointer';
+            backButton.id = 'evoBackToListButton'; backButton.textContent = '‹ Назад к списку статей';
+            backButton.style.display = 'block'; backButton.style.margin = '30px auto 10px auto'; backButton.style.padding = '10px 20px';
+            backButton.style.fontSize = '16px'; backButton.style.cursor = 'pointer';
             backButton.addEventListener('click', function() { newArticleOutput.innerHTML = ''; showView('list'); });
-            const hrSeparator = document.createElement('hr'); 
-            hrSeparator.style.marginTop = '30px';
-            newArticleOutput.appendChild(hrSeparator);
-            newArticleOutput.appendChild(backButton);
-            showView('fullArticle'); // Теперь это вид полной статьи
+            const hrAfterComments = document.createElement('hr'); hrAfterComments.style.marginTop = '20px';
+            newArticleOutput.appendChild(hrAfterComments); newArticleOutput.appendChild(backButton); 
+            showView('fullArticle'); 
         } catch (error) { 
             console.error('EvoLogia: Ошибка при загрузке полной статьи:', error);
             newArticleOutput.innerHTML = `<p style="color:red; text-align:center;">Не удалось загрузить статью: ${error.message}</p>`;
             const backButtonOnError = document.createElement('button');
-            backButtonOnError.textContent = '‹ Назад к списку';
-            backButtonOnError.style.marginTop = '10px'; 
+            backButtonOnError.textContent = '‹ Назад к списку'; backButtonOnError.style.marginTop = '10px'; 
             backButtonOnError.addEventListener('click', () => { newArticleOutput.innerHTML = ''; showView('list'); });
             newArticleOutput.appendChild(backButtonOnError);
             showView('fullArticle');
         } 
         finally { 
-            loadingIndicator.style.display = 'none'; 
-            loadingIndicator.textContent = 'Идет генерация статьи, пожалуйста, подождите...'; // Возвращаем стандартный текст
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none'; 
+                loadingIndicator.textContent = 'Идет генерация статьи, пожалуйста, подождите...';
+            }
         }
     }
     
     // --- ФУНКЦИЯ ЗАГРУЗКИ И ОТОБРАЖЕНИЯ СПИСКА СОХРАНЕННЫХ СТАТЕЙ ---
     async function fetchAndDisplaySavedArticles() {
-        if (!articleListContainer) return; 
-        if (loadingIndicator && articleListContainer.innerHTML === '') { 
-             articleListContainer.innerHTML = '<p>Загрузка сохраненных статей...</p>';
+        if (!articleListContainer) {
+            console.error("EvoLogia: articleListContainer не найден, не могу отобразить статьи.");
+            return; 
         }
         if (noSavedArticlesMessage) noSavedArticlesMessage.style.display = 'none';
+        articleListContainer.innerHTML = '<p style="text-align:center; color:#777;">Загрузка сохраненных статей...</p>'; 
         try {
+            console.log("EvoLogia: Запрос списка статей с бэкенда...");
             const response = await fetch(`${backendUrl}/api/articles`);
-            if (!response.ok) throw new Error(`Ошибка сервера при загрузке списка статей: ${response.status}`);
+            if (!response.ok) {
+                let errorDetail = `Статус: ${response.status}`;
+                try { const errorData = await response.json(); errorDetail = errorData.error || JSON.stringify(errorData); } 
+                catch (e) { try { errorDetail = await response.text(); } catch (e2) {} }
+                throw new Error(`Ошибка сервера при загрузке списка статей (${errorDetail})`);
+            }
             const responseData = await response.json(); 
-            allSavedArticlesData = responseData.articles || []; 
+            console.log("EvoLogia: Получены данные со списком статей:", responseData);
+
+            if (responseData && Array.isArray(responseData.articles)) {
+                allSavedArticlesData = responseData.articles; 
+            } else {
+                console.error("EvoLogia: Ответ API не содержит ожидаемого массива 'articles'. Получено:", responseData);
+                allSavedArticlesData = []; 
+            }
+
             articleListContainer.innerHTML = ''; 
             if (allSavedArticlesData.length > 0) {
                 allSavedArticlesData.forEach(article => {
                     articleListContainer.appendChild(renderSavedArticleItem(article));
                 });
             }
+            // Сообщение "нет статей" будет управляться из filterAndManageUI
         } catch (error) { 
             console.error('EvoLogia: Ошибка при загрузке списка сохраненных статей:', error);
-            if (articleListContainer) articleListContainer.innerHTML = `<p style="color: red;">Не удалось загрузить список статей: ${error.message}</p>`;
+            if (articleListContainer) articleListContainer.innerHTML = `<p style="color: red; text-align:center;">Не удалось загрузить список статей: ${error.message}</p>`;
+            allSavedArticlesData = []; 
         } 
         finally {
             showView('list'); 
@@ -148,24 +242,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (generatorControls) generatorControls.style.display = 'none';
             return;
         }
-
         const filterText = searchInput.value.toLowerCase().trim();
         let visibleArticlesCount = 0;
-        
         if (newArticleOutput && newArticleOutput.style.display !== 'block' && !newArticleOutput.querySelector('#evoPublishGeneratedArticleButton')) {
             newArticleOutput.innerHTML = '';
         }
-
-        // console.log(`--- FilterAndManageUI --- Текст фильтра: "${filterText}"`); // Раскомментируй для отладки
-
+        console.log(`--- FilterAndManageUI --- Текст фильтра: "${filterText}"`);
         const displayedArticleItems = articleListContainer.querySelectorAll('.article-list-item');
-        // console.log(`  Найдено .article-list-item для фильтрации: ${displayedArticleItems.length}`);
-
+        console.log(`  Найдено .article-list-item для фильтрации: ${displayedArticleItems.length}`);
         displayedArticleItems.forEach(function(itemElement) {
             const titleElement = itemElement.querySelector('.article-list-title');
             const titleText = titleElement ? titleElement.textContent.toLowerCase() : '';
             let shouldBeVisible = (filterText === '' || titleText.includes(filterText));
-
             if (shouldBeVisible) {
                 itemElement.style.setProperty('display', ''); 
                 visibleArticlesCount++;
@@ -173,9 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 itemElement.style.setProperty('display', 'none', 'important'); 
             }
         });
-
-        // console.log(`  Всего видимых статей после применения фильтра: ${visibleArticlesCount}`);
-
+        console.log(`  Всего видимых статей после применения фильтра: ${visibleArticlesCount}`);
         if (noSavedArticlesMessage) {
             if (allSavedArticlesData && allSavedArticlesData.length === 0 && filterText === '') {
                 noSavedArticlesMessage.textContent = "Сохраненных статей пока нет. Попробуйте сгенерировать новую!";
@@ -184,9 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 noSavedArticlesMessage.style.display = 'none'; 
             }
         }
-
         if (generatorControls && generateNewButton && noSearchResultsMessage) {
-            if (savedArticlesSection && savedArticlesSection.style.display === 'block') { // Показываем только если мы в режиме списка
+            if (savedArticlesSection && savedArticlesSection.style.display === 'block') { 
                 if (filterText !== '' && visibleArticlesCount === 0) {
                     generatorControls.style.display = 'block';
                     noSearchResultsMessage.style.display = 'block';
@@ -199,9 +284,10 @@ document.addEventListener('DOMContentLoaded', function() {
                  generatorControls.style.display = 'none';
             }
         }
-        // console.log("--- FilterAndManageUI завершена ---");
+        console.log("--- FilterAndManageUI завершена ---");
     }
 
+    // --- СЛУШАТЕЛЬ ДЛЯ ПОИСКА ---
     if (searchInput) { 
         searchInput.addEventListener('input', function() {
             if (savedArticlesSection && savedArticlesSection.style.display === 'none' && newArticleOutput && newArticleOutput.style.display === 'block') {
@@ -222,7 +308,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (generateNewButton) generateNewButton.disabled = true; 
         if (publishButton) publishButton.disabled = true;
-
         try {
             const response = await fetch(`${backendUrl}/api/articles`, { 
                 method: 'POST',
@@ -324,13 +409,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (newArticleOutput) {
                     newArticleOutput.innerHTML = `<p style="color: red;">Произошла ошибка при генерации: ${error.message}</p>`;
                 }
-                 showView('list'); // Если ошибка генерации, возвращаемся к списку
+                 showView('list'); 
             } 
             finally {
                 if(loadingIndicator) loadingIndicator.style.display = 'none';
-                // Кнопка "Сгенерировать" будет управляться filterAndManageUI, которую вызовет showView('list') или следующая операция
-                // generateNewButton.disabled = false; 
-                filterAndManageUI(); // Обновляем состояние UI после попытки генерации
+                filterAndManageUI(); 
             }
         });
     }
