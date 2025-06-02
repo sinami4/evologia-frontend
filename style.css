@@ -1,0 +1,260 @@
+/* Общие стили */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6; /* Слегка другой фон */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background: #2c3e50; /* Темно-синий */
+    color: #ecf0f1;   /* Светлый текст */
+    padding: 20px 0;
+    text-align: center;
+    border-bottom: 3px solid #3498db; /* Синий акцент */
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+header p {
+    margin: 5px 0 0;
+    font-size: 1.1em;
+    color: #bdc3c7; /* Светло-серый для подзаголовка */
+}
+
+main {
+    flex: 1; /* Занимает все доступное пространство между header и footer */
+    width: 90%;
+    max-width: 960px;
+    margin: 30px auto;
+    padding: 25px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+}
+
+section:not(:last-child) {
+    border-bottom: 1px solid #ecf0f1; /* Светлый разделитель */
+}
+
+
+h2 { /* Стили для заголовков секций */
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+/* Стили для поиска */
+#queryInput {
+    width: calc(100% - 24px); /* Учитываем padding */
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    box-sizing: border-box; /* Чтобы padding не увеличивал общую ширину */
+}
+
+/* Стили для "свернутых" элементов статей (карточек) */
+#articleCardsContainer .article-item {
+    border: 1px solid #e0e0e0;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: #fdfdfd;
+    /* cursor: pointer; */ /* Пока уберем, т.к. нет разворачивания */
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+/* #articleCardsContainer .article-item:hover {
+    border-color: #3498db;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+} */
+#articleCardsContainer .article-item-title {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.5em; /* Крупнее для заголовка карточки */
+    color: #3498db; /* Синий для заголовка */
+    font-weight: 600;
+}
+#articleCardsContainer .article-item-date {
+    font-size: 0.85em;
+    color: #7f8c8d; /* Серый для даты */
+    margin-bottom: 5px;
+}
+
+/* Стили для кнопки "Сгенерировать" и индикатора */
+#evoGenerateNewArticleButton {
+    display: none; 
+    margin: 20px auto;
+    padding: 12px 25px;
+    background-color: #3498db; /* Синий */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+    transition: background-color 0.2s ease;
+}
+#evoGenerateNewArticleButton:hover {
+    background-color: #2980b9; /* Темнее синий */
+}
+
+#evoLoadingIndicator {
+    display: none; 
+    text-align: center;
+    font-weight: bold;
+    font-family: inherit;
+    margin: 20px 0;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+/* Стили для вывода новой сгенерированной статьи */
+#evoNewArticleOutput {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    background-color: #f8f9fa; /* Очень светлый фон для сгенерированной статьи */
+    text-align: left; 
+    font-family: inherit;
+    line-height: 1.7;
+    border-radius: 6px;
+}
+#evoNewArticleOutput h2 { 
+    font-family: inherit;
+    font-size: 1.7em;
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.7em;
+    color: #2c3e50;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #bdc3c7;
+}
+#evoNewArticleOutput h3 {
+    font-family: inherit;
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-top: 1.3em;
+    margin-bottom: 0.5em;
+    color: #34495e; /* Темно-серый-синий */
+}
+#evoNewArticleOutput p {
+    font-family: inherit;
+    margin-bottom: 1.1em;
+    color: #333;
+}
+#evoNewArticleOutput ul, 
+#evoNewArticleOutput ol {
+    font-family: inherit;
+    margin-left: 25px;
+    margin-bottom: 1.1em;
+    color: #333;
+}
+#evoNewArticleOutput li {
+    font-family: inherit;
+    margin-bottom: 0.6em;
+}
+#evoNewArticleOutput strong {
+    font-family: inherit;
+    font-weight: bold;
+}
+#evoNewArticleOutput em {
+    font-family: inherit;
+    font-style: italic;
+}
+/* Стиль для кнопки "Назад к списку" (можно сделать похожей на другие кнопки) */
+#evoBackToListButton {
+    display: block; /* Чтобы была на новой строке и можно было центрировать margin auto */
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #6c757d; /* Серый цвет, например */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+}
+#evoBackToListButton:hover {
+    background-color: #5a6268;
+}
+
+/* Можно добавить стили для даты полной статьи, если будешь ее показывать */
+/* .full-article-date {
+    font-size: 0.9em;
+    color: #777;
+    margin-bottom: 15px;
+} */
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #2c3e50;
+    color: #ecf0f1;
+    margin-top: auto; /* Прижимает футер к низу, если контента мало */
+}
+/* === НОВЫЕ СТИЛИ для списка сохраненных статей === */
+
+/* Стили для ОДНОГО "свернутого" элемента в списке сохраненных статей */
+.article-list-item {
+    border: 1px solid #e0e0e0;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: #fdfdfd; /* Такой же фон, как у твоих карточек */
+    cursor: pointer; /* Показываем, что на элемент можно нажать */
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.article-list-item:hover {
+    border-color: #3498db; /* Такой же эффект при наведении */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* Стили для ЗАГОЛОВКА "свернутого" элемента в списке */
+.article-list-item .article-list-title { /* Уточнили селектор, чтобы он применялся к h3 внутри .article-list-item */
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.5em; 
+    color: #3498db; /* Такой же цвет, как у заголовков карточек */
+    font-weight: 600;
+    font-family: inherit; /* На всякий случай, чтобы наследовался основной шрифт */
+}
+
+/* (Опционально) Стили для даты или другого текста в "свернутом" элементе, если добавишь */
+/* .article-list-item .article-list-date {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+    font-family: inherit;
+} */
+
+/* Сообщение, если сохраненных статей нет или поиск ничего не дал */
+#noSavedArticlesMessage {
+    color: #7f8c8d;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    font-family: inherit;
+}
+
+/* (Опционально) Стили для развернутой статьи, если она будет отображаться на этой же странице */
+/* #fullArticleDisplay {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+} */

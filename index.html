@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvoLogia - Знания, которые растут</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>EvoLogia</h1>
+        <p>Знания, которые растут вместе с вами</p>
+    </header>
+
+    <main>
+        <section id="search-section">
+            <h2>Поиск по статьям или генерация новой</h2>
+            <input type="text" id="queryInput" placeholder="Введите тему для поиска или генерации...">
+        </section>
+
+        <section id="saved-articles-section">
+            <h2>Сохраненные статьи</h2>
+            <div id="articleListContainer"> 
+                <!-- Сюда JavaScript будет вставлять список "свернутых" элементов статей -->
+            </div>
+            <!-- Это сообщение ТОЛЬКО для случая, когда статей НЕТ ВООБЩЕ И ПОИСК ПУСТ -->
+            <p id="noSavedArticlesMessage" style="display:none; text-align: center; margin-top: 15px; color: #777; font-style: italic;">
+                Сохраненных статей пока нет. Попробуйте сгенерировать новую!
+            </p>
+        </section>
+
+        <!-- СЕКЦИЯ ДЛЯ ГЕНЕРАЦИИ (появляется, если поиск по сохраненным не дал результатов) -->
+        <section id="generation-section">
+            <div id="generatorControls" style="text-align: center; margin-top: 20px; display: none;"> 
+                <p id="noSearchResultsMessage" style="margin-bottom: 15px; color: #777; font-style: italic;">По вашему запросу среди сохраненных статей ничего не найдено.</p>
+                <button id="evoGenerateNewArticleButton">Сгенерировать новую статью по запросу</button>
+            </div>
+            
+            <div id="evoLoadingIndicator" style="display: none; text-align: center; font-weight: bold; margin: 20px 0;">
+                <!-- Текст для индикатора будет задаваться из JS -->
+            </div>
+            
+            <!-- Область для вывода ТОЛЬКО ЧТО сгенерированной статьи ИЛИ ПОЛНОЙ СТАТЬИ для просмотра -->
+            <div id="evoNewArticleOutput">
+                <!-- Сюда будет вставляться HTML -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 EvoLogia</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
