@@ -8,11 +8,68 @@
 </head>
 <body>
     <header>
-        <h1>EvoLogia</h1>
-        <p>Знания, которые растут вместе с вами</p>
+        <div class="header-content">
+            <div class="logo-area">
+                <h1>EvoLogia</h1>
+                <p>Знания, которые растут вместе с вами</p>
+            </div>
+            <div class="auth-area">
+                <nav id="authNav">
+                    <button id="showLoginModalButton" class="auth-nav-button">Войти</button>
+                    <button id="showRegisterModalButton" class="auth-nav-button">Регистрация</button>
+                </nav>
+                <div id="userInfo" style="display:none;">
+                    Привет, <span id="loggedInUsername" style="font-weight: bold;"></span>! 
+                    <button id="logoutButton" class="auth-nav-button">Выйти</button>
+                </div>
+            </div>
+        </div>
     </header>
 
     <main>
+        <!-- Секция для форм аутентификации (модальное окно или просто секция) -->
+        <!-- Пока сделаем как секцию, которую будем показывать/скрывать -->
+        <section id="auth-forms-section" style="display:none; margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; background-color: #f9f9f9; border-radius: 8px;">
+            <div id="login-form-container">
+                <h3>Вход в аккаунт</h3>
+                <form id="loginForm">
+                    <div>
+                        <label for="loginIdentifier">Имя пользователя или Email:</label>
+                        <input type="text" id="loginIdentifier" name="identifier" required>
+                    </div>
+                    <div>
+                        <label for="loginPassword">Пароль:</label>
+                        <input type="password" id="loginPassword" name="password" required>
+                    </div>
+                    <button type="submit" class="form-submit-button">Войти</button>
+                    <p id="loginError" class="auth-error-message" style="display:none;"></p>
+                </form>
+                <p class="auth-switch-message">Нет аккаунта? <a href="#" id="switchToRegisterLink">Зарегистрироваться</a></p>
+            </div>
+        
+            <div id="register-form-container" style="display:none;">
+                <h3>Создание нового аккаунта</h3>
+                <form id="registerForm">
+                    <div>
+                        <label for="registerUsername">Имя пользователя:</label>
+                        <input type="text" id="registerUsername" name="username" required>
+                    </div>
+                    <div>
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" name="email" required>
+                    </div>
+                    <div>
+                        <label for="registerPassword">Пароль (мин. 6 символов):</label>
+                        <input type="password" id="registerPassword" name="password" required minlength="6">
+                    </div>
+                    <button type="submit" class="form-submit-button">Зарегистрироваться</button>
+                    <p id="registerError" class="auth-error-message" style="display:none;"></p>
+                </form>
+                <p class="auth-switch-message">Уже есть аккаунт? <a href="#" id="switchToLoginLink">Войти</a></p>
+            </div>
+        </section>
+
+        <!-- Твои существующие секции -->
         <section id="search-section">
             <h2>Поиск по статьям или генерация новой</h2>
             <input type="text" id="queryInput" placeholder="Введите тему для поиска или генерации...">
@@ -23,13 +80,11 @@
             <div id="articleListContainer"> 
                 <!-- Сюда JavaScript будет вставлять список "свернутых" элементов статей -->
             </div>
-            <!-- Это сообщение ТОЛЬКО для случая, когда статей НЕТ ВООБЩЕ И ПОИСК ПУСТ -->
             <p id="noSavedArticlesMessage" style="display:none; text-align: center; margin-top: 15px; color: #777; font-style: italic;">
                 Сохраненных статей пока нет. Попробуйте сгенерировать новую!
             </p>
         </section>
 
-        <!-- СЕКЦИЯ ДЛЯ ГЕНЕРАЦИИ (появляется, если поиск по сохраненным не дал результатов) -->
         <section id="generation-section">
             <div id="generatorControls" style="text-align: center; margin-top: 20px; display: none;"> 
                 <p id="noSearchResultsMessage" style="margin-bottom: 15px; color: #777; font-style: italic;">По вашему запросу среди сохраненных статей ничего не найдено.</p>
@@ -40,7 +95,6 @@
                 <!-- Текст для индикатора будет задаваться из JS -->
             </div>
             
-            <!-- Область для вывода ТОЛЬКО ЧТО сгенерированной статьи ИЛИ ПОЛНОЙ СТАТЬИ для просмотра -->
             <div id="evoNewArticleOutput">
                 <!-- Сюда будет вставляться HTML -->
             </div>
