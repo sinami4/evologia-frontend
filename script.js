@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // --- ОСНОВНЫЕ ЭЛЕМЕНТЫ DOM ---
+    // --- ОСНОВНЫЕ ЭЛЕМЕНТЫ DOM (СУЩЕСТВУЮЩИЕ И НОВЫЕ) ---
     const searchInput = document.getElementById('queryInput'); 
     const searchSection = document.getElementById('search-section'); 
     const savedArticlesSection = document.getElementById('saved-articles-section'); 
@@ -12,19 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const newArticleOutput = document.getElementById('evoNewArticleOutput'); 
 
     // Новые элементы для аутентификации
-    const authNav = document.getElementById('authNav');
-    const userInfoDisplay = document.getElementById('userInfo');
+    const authNav = document.getElementById('authNav'); // Контейнер для кнопок Войти/Регистрация в шапке
+    const userInfoDisplay = document.getElementById('userInfo'); // Контейнер для "Привет, Имя! / Выйти"
     const loggedInUsernameSpan = document.getElementById('loggedInUsername');
     const logoutButton = document.getElementById('logoutButton');
-    const showLoginModalButton = document.getElementById('showLoginModalButton');
-    const showRegisterModalButton = document.getElementById('showRegisterModalButton');
-    const authFormsSection = document.getElementById('auth-forms-section');
+    const showLoginModalButton = document.getElementById('showLoginModalButton'); // Кнопка "Войти" в шапке
+    const showRegisterModalButton = document.getElementById('showRegisterModalButton'); // Кнопка "Регистрация" в шапке
+    
+    const authFormsSection = document.getElementById('auth-forms-section'); // Общая секция для форм
     const loginFormContainer = document.getElementById('login-form-container');
     const registerFormContainer = document.getElementById('register-form-container');
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
-    const switchToRegisterLink = document.getElementById('switchToRegisterLink');
-    const switchToLoginLink = document.getElementById('switchToLoginLink');
+    const switchToRegisterLink = document.getElementById('switchToRegisterLink'); // Ссылка "Зарегистрироваться" под формой логина
+    const switchToLoginLink = document.getElementById('switchToLoginLink');   // Ссылка "Войти" под формой регистрации
     const loginErrorP = document.getElementById('loginError');
     const registerErrorP = document.getElementById('registerError');
 
@@ -39,36 +40,41 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkEssentialElements() {
         let allEssentialExist = true;
         if (!searchInput) { console.error('EvoLogia ERROR: Поле поиска "queryInput" не найдено!'); allEssentialExist = false; }
-        if (!articleListContainer) { console.error('EvoLogia ERROR: Контейнер "articleListContainer" не найден!'); allEssentialExist = false; }
-        if (!generateNewButton) { console.error('EvoLogia ERROR: Кнопка "evoGenerateNewArticleButton" не найдена!'); allEssentialExist = false; }
+        if (!articleListContainer) { console.error('EvoLogia ERROR: Контейнер "articleListContainer" не найдено!'); allEssentialExist = false; }
+        // generateNewButton может быть не критичным, если он появляется динамически
+        // if (!generateNewButton) { console.error('EvoLogia ERROR: Кнопка "evoGenerateNewArticleButton" не найдена!'); allEssentialExist = false; }
         if (!newArticleOutput) { console.error('EvoLogia ERROR: Область "evoNewArticleOutput" не найдена!'); allEssentialExist = false; }
+        // Элементы аутентификации
+        if (!authNav) console.warn('EvoLogia WARN: #authNav не найден.');
+        if (!userInfoDisplay) console.warn('EvoLogia WARN: #userInfo не найден.');
+        if (!showLoginModalButton) console.warn('EvoLogia WARN: #showLoginModalButton не найден.');
+        if (!showRegisterModalButton) console.warn('EvoLogia WARN: #showRegisterModalButton не найден.');
         if (!authFormsSection) { console.error('EvoLogia ERROR: Секция форм "#auth-forms-section" не найдена!'); allEssentialExist = false; }
         if (!loginForm) { console.error('EvoLogia ERROR: Форма входа "loginForm" не найдена!'); allEssentialExist = false; }
         if (!registerForm) { console.error('EvoLogia ERROR: Форма регистрации "registerForm" не найдена!'); allEssentialExist = false; }
-        if (!authNav) console.warn('EvoLogia WARN: Контейнер навигации "#authNav" не найден.');
-        if (!userInfoDisplay) console.warn('EvoLogia WARN: Контейнер информации о пользователе "#userInfo" не найден.');
         return allEssentialExist;
     }
-    if (!checkEssentialElements()) {
-        console.error("EvoLogia FATAL: Отсутствуют один или несколько критически важных элементов DOM. Дальнейшая работа скрипта может быть нарушена.");
-        // Можно даже прервать выполнение, если совсем критично, но пока оставим так.
-    }
+    checkEssentialElements(); // Выполняем проверку при загрузке
     
     // --- УПРАВЛЕНИЕ СОСТОЯНИЕМ ПОЛЬЗОВАТЕЛЯ И UI АУТЕНТИФИКАЦИИ ---
     function updateAuthUI() {
         console.log("EvoLogia: Вызвана updateAuthUI(). currentUser:", currentUser);
         const token = localStorage.getItem('evoUserToken');
-        if (token && currentUser) {
+        if (token && currentUser && currentUser.username) { // Проверяем и токен, и данные пользователя
             if (authNav) authNav.style.display = 'none';
-            if (userInfoDisplay) userInfoDisplay.style.display = 'flex'; // Используем flex для корректного отображения
+            if (userInfoDisplay) userInfoDisplay.style.display = 'flex'; 
             if (loggedInUsernameSpan) loggedInUsernameSpan.textContent = currentUser.username;
         } else {
             if (authNav) authNav.style.display = 'flex';
             if (userInfoDisplay) userInfoDisplay.style.display = 'none';
             if (loggedInUsernameSpan) loggedInUsernameSpan.textContent = '';
         }
-        // Всегда скрываем секцию с формами при обновлении основного UI
-        if (authFormsSection) authFormsSection.style.display = 'none';
+        // Скрываем секцию с формами по умолчанию при обновлении UI (если она не должна быть активной)
+        if (authFormsSection && authFormsSection.style.display === 'block' && 
+            (!loginFormContainer || loginFormContainer.style.display === 'none') && 
+            (!registerFormContainer || registerFormContainer.style.display === 'none')) {
+            authFormsSection.style.display = 'none';
+        }
     }
 
     async function checkAuthState() {
@@ -78,13 +84,15 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 loadingIndicatorShow('Проверка сессии...');
                 const response = await fetch(`${backendUrl}/api/auth/me`, {
+                    method: 'GET', // Явно указываем метод
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
                     currentUser = await response.json();
                     console.log('EvoLogia: Пользователь аутентифицирован при проверке:', currentUser);
                 } else {
-                    console.warn('EvoLogia: Токен невалиден или сессия истекла, удаляем токен.');
+                    const errorData = await response.text(); // Попытка получить текст ошибки
+                    console.warn(`EvoLogia: Токен невалиден или сессия истекла (статус: ${response.status}). Ответ: ${errorData}. Удаляем токен.`);
                     localStorage.removeItem('evoUserToken'); currentUser = null;
                 }
             } catch (error) {
@@ -97,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentUser = null;
             console.log('EvoLogia: Токен не найден, пользователь не аутентифицирован.');
         }
-        updateAuthUI(); // Обновляем UI после проверки
+        updateAuthUI();
     }
     
     function loadingIndicatorShow(message = "Загрузка...") {
@@ -125,154 +133,78 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    if (showLoginModalButton) {
-        showLoginModalButton.addEventListener('click', () => {
-            console.log("EvoLogia: Клик по кнопке 'Войти' в шапке.");
-            showAuthForm('login');
-        });
-    } else { console.warn("EvoLogia WARN: Кнопка 'showLoginModalButton' не найдена."); }
-
-    if (showRegisterModalButton) {
-        showRegisterModalButton.addEventListener('click', () => {
-            console.log("EvoLogia: Клик по кнопке 'Регистрация' в шапке.");
-            showAuthForm('register');
-        });
-    } else { console.warn("EvoLogia WARN: Кнопка 'showRegisterModalButton' не найдена."); }
-    
-    if (switchToRegisterLink) {
-        switchToRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm('register'); });
-    } else { console.warn("EvoLogia WARN: Ссылка 'switchToRegisterLink' не найдена."); }
-
-    if (switchToLoginLink) {
-        switchToLoginLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm('login'); });
-    } else { console.warn("EvoLogia WARN: Ссылка 'switchToLoginLink' не найдена."); }
-
+    if (showLoginModalButton) showLoginModalButton.addEventListener('click', () => showAuthForm('login'));
+    if (showRegisterModalButton) showRegisterModalButton.addEventListener('click', () => showAuthForm('register'));
+    if (switchToRegisterLink) switchToRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm('register'); });
+    if (switchToLoginLink) switchToLoginLink.addEventListener('click', (e) => { e.preventDefault(); showAuthForm('login'); });
 
     if (registerForm) {
         registerForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            console.log("EvoLogia: Событие submit формы регистрации."); // ОТЛАДОЧНЫЙ ЛОГ
+            console.log("EvoLogia: Событие submit формы регистрации.");
             if (registerErrorP) { registerErrorP.style.display = 'none'; registerErrorP.textContent = '';}
-            
             const usernameInput = document.getElementById('registerUsername');
             const emailInput = document.getElementById('registerEmail');
             const passwordInput = document.getElementById('registerPassword');
-
             if (!usernameInput || !emailInput || !passwordInput) {
-                console.error("EvoLogia ERROR: Одно или несколько полей формы регистрации не найдены!");
-                if (registerErrorP) { registerErrorP.textContent = 'Ошибка формы. Обновите страницу.'; registerErrorP.style.display = 'block'; }
-                return;
+                if (registerErrorP) { registerErrorP.textContent = 'Ошибка формы.'; registerErrorP.style.display = 'block'; } return;
             }
-
-            const username = usernameInput.value.trim();
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-
-            if (!username || !email || !password) {
-                if (registerErrorP) { registerErrorP.textContent = 'Все поля обязательны для заполнения.'; registerErrorP.style.display = 'block'; }
-                return;
-            }
-            if (password.length < 6) {
-                if (registerErrorP) { registerErrorP.textContent = 'Пароль должен содержать не менее 6 символов.'; registerErrorP.style.display = 'block'; }
-                return;
-            }
-            loadingIndicatorShow('Регистрация аккаунта...');
+            const username = usernameInput.value.trim(); const email = emailInput.value.trim(); const password = passwordInput.value;
+            if (!username || !email || !password) { if (registerErrorP) { registerErrorP.textContent = 'Все поля обязательны.'; registerErrorP.style.display = 'block'; } return; }
+            if (password.length < 6) { if (registerErrorP) { registerErrorP.textContent = 'Пароль не менее 6 символов.'; registerErrorP.style.display = 'block'; } return; }
+            
+            loadingIndicatorShow('Регистрация...');
             try {
                 const response = await fetch(`${backendUrl}/api/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, email, password })
                 });
                 const data = await response.json();
-                console.log("EvoLogia: Ответ от сервера регистрации:", data); // ОТЛАДОЧНЫЙ ЛОГ
-                if (!response.ok) { throw new Error(data.error || `Ошибка сервера: ${response.status}`); }
-                
-                localStorage.setItem('evoUserToken', data.access_token);
-                currentUser = data.user;
-                alert('Регистрация успешна! Вы автоматически вошли в систему.');
-                updateAuthUI();
-                showView('list'); // Возвращаемся к списку статей
-                // fetchAndDisplaySavedArticles(); // Можно раскомментировать, если нужно обновить список
-            } catch (error) {
-                console.error('EvoLogia ERROR: Ошибка регистрации:', error);
-                if (registerErrorP) { registerErrorP.textContent = error.message; registerErrorP.style.display = 'block'; }
-            } finally {
-                loadingIndicatorHide();
-            }
+                if (!response.ok) { throw new Error(data.error || `Ошибка: ${response.status}`); }
+                localStorage.setItem('evoUserToken', data.access_token); currentUser = data.user;
+                alert('Регистрация успешна! Вы вошли.'); updateAuthUI(); showView('list');
+            } catch (error) { if (registerErrorP) { registerErrorP.textContent = error.message; registerErrorP.style.display = 'block'; }} 
+            finally { loadingIndicatorHide(); }
         });
-    } else {
-        console.error('EvoLogia FATAL: Форма регистрации (registerForm) НЕ НАЙДЕНА, обработчик не привязан!');
-    }
+    } else { console.error('EvoLogia FATAL: Форма registerForm НЕ НАЙДЕНА!'); }
 
     if (loginForm) {
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            console.log("EvoLogia: Событие submit формы входа."); // ОТЛАДОЧНЫЙ ЛОГ
+            console.log("EvoLogia: Событие submit формы входа.");
             if (loginErrorP) { loginErrorP.style.display = 'none'; loginErrorP.textContent = ''; }
-
             const identifierInput = document.getElementById('loginIdentifier');
             const passwordInput = document.getElementById('loginPassword');
-
-            if(!identifierInput || !passwordInput) {
-                console.error("EvoLogia ERROR: Одно или несколько полей формы входа не найдены!");
-                if (loginErrorP) { loginErrorP.textContent = 'Ошибка формы. Обновите страницу.'; loginErrorP.style.display = 'block'; }
-                return;
-            }
-            const identifier = identifierInput.value.trim();
-            const password = passwordInput.value;
-
-            if (!identifier || !password) {
-                if (loginErrorP) { loginErrorP.textContent = 'Все поля обязательны для заполнения.'; loginErrorP.style.display = 'block'; }
-                return;
-            }
-            loadingIndicatorShow('Выполняется вход...');
+            if(!identifierInput || !passwordInput) { if (loginErrorP) { loginErrorP.textContent = 'Ошибка формы.'; loginErrorP.style.display = 'block'; } return; }
+            const identifier = identifierInput.value.trim(); const password = passwordInput.value;
+            if (!identifier || !password) { if (loginErrorP) { loginErrorP.textContent = 'Все поля обязательны.'; loginErrorP.style.display = 'block'; } return; }
+            
+            loadingIndicatorShow('Вход...');
             try {
                 const payload = {};
-                if (identifier.includes('@')) { payload.email = identifier; } 
-                else { payload.username = identifier; }
+                if (identifier.includes('@')) { payload.email = identifier; } else { payload.username = identifier; }
                 payload.password = password;
-
                 const response = await fetch(`${backendUrl}/api/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
                 const data = await response.json();
-                console.log("EvoLogia: Ответ от сервера входа:", data); // ОТЛАДОЧНЫЙ ЛОГ
-                if (!response.ok) { throw new Error(data.error || `Ошибка сервера: ${response.status}`); }
-
-                localStorage.setItem('evoUserToken', data.access_token);
-                currentUser = data.user;
-                alert('Вход успешен!');
-                updateAuthUI();
-                showView('list'); // Возвращаемся к списку статей
-                // fetchAndDisplaySavedArticles(); 
-            } catch (error) {
-                console.error('EvoLogia ERROR: Ошибка входа:', error);
-                if (loginErrorP) { loginErrorP.textContent = error.message; loginErrorP.style.display = 'block'; }
-            } finally {
-                loadingIndicatorHide();
-            }
+                if (!response.ok) { throw new Error(data.error || `Ошибка: ${response.status}`); }
+                localStorage.setItem('evoUserToken', data.access_token); currentUser = data.user;
+                alert('Вход успешен!'); updateAuthUI(); showView('list');
+            } catch (error) { if (loginErrorP) { loginErrorP.textContent = error.message; loginErrorP.style.display = 'block'; }
+            } finally { loadingIndicatorHide(); }
         });
-    } else {
-        console.error('EvoLogia FATAL: Форма входа (loginForm) НЕ НАЙДЕНА, обработчик не привязан!');
-    }
+    } else { console.error('EvoLogia FATAL: Форма loginForm НЕ НАЙДЕНА!'); }
     
     if (logoutButton) {
         logoutButton.addEventListener('click', function() {
-            console.log("EvoLogia: Клик по кнопке 'Выйти'.");
-            localStorage.removeItem('evoUserToken');
-            currentUser = null;
-            alert('Вы вышли из системы.');
-            updateAuthUI();
-            showView('list'); // Показываем главный вид
-            // fetchAndDisplaySavedArticles(); // Можно обновить список статей, если он зависит от статуса пользователя
+            console.log("EvoLogia: Клик по 'Выйти'.");
+            localStorage.removeItem('evoUserToken'); currentUser = null;
+            alert('Вы вышли из системы.'); updateAuthUI(); showView('list');
         });
     } else { console.warn("EvoLogia WARN: Кнопка 'logoutButton' не найдена.");}
 
-    // --- ТВОИ СУЩЕСТВУЮЩИЕ ФУНКЦИИ ДЛЯ СТАТЕЙ И КОММЕНТАРИЕВ ---
-    // (Я беру их из твоего последнего полного script.js, который ты присылал)
-
+    // --- КОПИРУЮ ТВОИ СУЩЕСТВУЮЩИЕ ФУНКЦИИ ИЗ ПРЕДЫДУЩЕГО КОДА ---
     function showView(viewName) { 
         if (searchSection) searchSection.style.display = 'none';
         if (savedArticlesSection) savedArticlesSection.style.display = 'none';
@@ -283,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  newArticleOutput.innerHTML = '';
              }
         }
-        if (authFormsSection) authFormsSection.style.display = 'none';
+        if (authFormsSection) authFormsSection.style.display = 'none'; // Эту строку мы уже добавили выше
         console.log(`EvoLogia: Переключение вида на: ${viewName}`);
         if (viewName === 'list') { 
             if (searchSection) searchSection.style.display = 'block';
@@ -296,12 +228,12 @@ document.addEventListener('DOMContentLoaded', function() {
                  searchSection.style.display = 'block';
             }
             if (newArticleOutput) newArticleOutput.style.display = 'block'; 
-        } else if (viewName === 'auth') {
+        } else if (viewName === 'auth') { // Эта ветка теперь управляет видимостью authFormsSection
              if (authFormsSection) authFormsSection.style.display = 'block';
         }
     }
 
-    function renderSavedArticleItem(articleData) { /* ... твой код из предыдущего script.js ... */ 
+    function renderSavedArticleItem(articleData) {
         const itemDiv = document.createElement('div');
         itemDiv.classList.add('article-list-item'); 
         itemDiv.dataset.id = articleData.id; 
@@ -309,11 +241,13 @@ document.addEventListener('DOMContentLoaded', function() {
         titleH3.classList.add('article-list-title'); 
         titleH3.textContent = articleData.title;
         itemDiv.appendChild(titleH3);
-        itemDiv.addEventListener('click', function() { displayFullArticle(articleData.id); });
+        itemDiv.addEventListener('click', function() {
+            displayFullArticle(articleData.id); 
+        });
         return itemDiv;
     }
 
-    function renderCommentItem(commentData) { /* ... твой код из предыдущего script.js ... */ 
+    function renderCommentItem(commentData) {
         const commentDiv = document.createElement('div');
         commentDiv.classList.add('comment-item');
         const authorP = document.createElement('p');
@@ -326,11 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return commentDiv;
     }
 
-        async function displayFullArticle(articleId) {
-        if (!newArticleOutput || !loadingIndicator) { 
-            console.error("EvoLogia: Отсутствуют элементы DOM для displayFullArticle."); 
-            return; 
-        }
+    async function displayFullArticle(articleId) {
+        if (!newArticleOutput || !loadingIndicator) { console.error("EvoLogia: Отсутствуют элементы DOM для displayFullArticle."); return; }
         showView('generating'); 
         loadingIndicatorShow('Загрузка статьи и комментариев...');
         newArticleOutput.innerHTML = ''; 
@@ -342,13 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(errorText); 
             }
             const fullArticleData = await articleResponse.json();
-            console.log('EvoLogia: Полная статья получена:', fullArticleData);
-
-            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-            // Мы больше не добавляем заголовок fullArticleData.title вручную,
-            // так как предполагаем, что content_html от ИИ уже содержит главный заголовок.
             newArticleOutput.innerHTML = fullArticleData.content_html; 
-            // --- КОНЕЦ ИЗМЕНЕНИЯ ---
             
             const commentsSectionDiv = document.createElement('div'); commentsSectionDiv.id = 'comments-section';
             commentsSectionDiv.innerHTML = '<h3>Комментарии:</h3>'; 
@@ -357,7 +282,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const hrComments = document.createElement('hr'); hrComments.style.cssText = "margin-top:25px; margin-bottom:20px;";
             newArticleOutput.appendChild(hrComments); newArticleOutput.appendChild(commentsSectionDiv);
 
-            // Загрузка и отображение комментариев (твой существующий код)
             try {
                 const commentsResponse = await fetch(`${backendUrl}/api/articles/${articleId}/comments`);
                 if (commentsResponse.ok) {
@@ -368,7 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else { commentsListDiv.innerHTML = '<p style="color: #777;">Не удалось загрузить комментарии.</p>'; }
             } catch (commentsError) { commentsListDiv.innerHTML = `<p style="color: red;">Ошибка загрузки комментариев.</p>`; }
             
-            // Форма добавления комментария (твой существующий код с адаптацией для currentUser)
             const addCommentForm = document.createElement('form'); addCommentForm.id = 'add-comment-form';
             addCommentForm.innerHTML = `<h4>Оставить комментарий:</h4>
                 <div id="commentAuthorNameDiv"><label for="commentAuthorNameInput">Ваше имя (если не вошли):</label><input type="text" id="commentAuthorNameInput" name="author_name" maxlength="100"></div>
@@ -401,13 +324,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!response.ok) { let errTxt = `Ошибка: ${response.status}`; try{const eD=await response.json();errTxt=eD.error||errTxt;}catch(e){} throw new Error(errTxt); }
                     const newCommentData = await response.json();
                     const noCommentsP = commentsListDiv.querySelector('p.no-comments-yet'); if(noCommentsP) noCommentsP.remove();
-                    commentsListDiv.appendChild(renderCommentItem(newCommentData.comment));
-                    document.getElementById('commentTextInput').value = '';
+                    commentsListDiv.appendChild(renderCommentItem(newCommentData.comment)); // Используем newCommentData.comment
+                    if(document.getElementById('commentTextInput')) document.getElementById('commentTextInput').value = '';
                     const authorInput = document.getElementById('commentAuthorNameInput'); if(authorInput) authorInput.value = '';
                 } catch (error) { alert(`Не удалось отправить комментарий: ${error.message}`); } 
                 finally { if(submitButton) submitButton.disabled = false; }
             });
-            
             const backButton = document.createElement('button'); backButton.id = 'evoBackToListButton';
             backButton.textContent = '‹ Назад к списку статей'; 
             backButton.addEventListener('click', function() { showView('list'); });
@@ -422,71 +344,121 @@ document.addEventListener('DOMContentLoaded', function() {
             showView('fullArticle');
         } finally { loadingIndicatorHide('Идет генерация статьи, пожалуйста, подождите...'); }
     }
+    
+    async function fetchAndDisplaySavedArticles() { 
+        if (!articleListContainer) { console.error("EvoLogia: articleListContainer не найден."); return; }
+        if (noSavedArticlesMessage) noSavedArticlesMessage.style.display = 'none';
+        articleListContainer.innerHTML = '<p style="text-align:center; color:#777;">Загрузка сохраненных статей...</p>'; 
+        try {
+            const response = await fetch(`${backendUrl}/api/articles`);
+            if (!response.ok) { throw new Error(`Ошибка сервера: ${response.status}`);}
+            const responseData = await response.json(); 
+            allSavedArticlesData = (responseData && Array.isArray(responseData.articles)) ? responseData.articles : [];
+            articleListContainer.innerHTML = ''; 
+            if (allSavedArticlesData.length > 0) {
+                allSavedArticlesData.forEach(article => articleListContainer.appendChild(renderSavedArticleItem(article)));
+            }
+        } catch (error) { 
+            if (articleListContainer) articleListContainer.innerHTML = `<p style="color: red;">Ошибка загрузки статей: ${error.message}</p>`;
+            allSavedArticlesData = []; 
+        } finally { showView('list'); }
+    }
 
-    function filterAndManageUI() { /* ... твой код из предыдущего script.js ... */ 
+    function filterAndManageUI() { 
         if (!searchInput || !articleListContainer) { if (generatorControls) generatorControls.style.display = 'none'; return; }
         const filterText = searchInput.value.toLowerCase().trim();
         let visibleArticlesCount = 0;
         if (newArticleOutput && newArticleOutput.style.display !== 'block' && !newArticleOutput.querySelector('#evoPublishGeneratedArticleButton')) {
             newArticleOutput.innerHTML = '';
         }
+        
+        // Фильтруем на основе данных в allSavedArticlesData и обновляем видимость DOM-элементов
         allSavedArticlesData.forEach(articleData => {
             const articleElement = articleListContainer.querySelector(`.article-list-item[data-id="${articleData.id}"]`);
-            if (!articleElement) return; 
+            if (!articleElement) return; // Если элемент еще не создан в DOM (например, при первой загрузке)
+            
             const titleText = articleData.title.toLowerCase();
             let shouldBeVisible = (filterText === '' || titleText.includes(filterText));
-            if (shouldBeVisible) { articleElement.style.setProperty('display', ''); visibleArticlesCount++; } 
-            else { articleElement.style.setProperty('display', 'none', 'important'); }
+            
+            if (shouldBeVisible) { 
+                articleElement.style.setProperty('display', ''); 
+                visibleArticlesCount++; 
+            } else { 
+                articleElement.style.setProperty('display', 'none', 'important'); 
+            }
         });
+
         if (noSavedArticlesMessage) {
             if (allSavedArticlesData.length === 0 && filterText === '') {
-                noSavedArticlesMessage.textContent = "Сохраненных статей пока нет."; noSavedArticlesMessage.style.display = 'block';
-            } else { noSavedArticlesMessage.style.display = 'none';  }
+                noSavedArticlesMessage.textContent = "Сохраненных статей пока нет. Попробуйте сгенерировать новую!";
+                noSavedArticlesMessage.style.display = 'block';
+            } else { 
+                noSavedArticlesMessage.style.display = 'none';  
+            }
         }
         if (generatorControls && generateNewButton && noSearchResultsMessage) {
             if (savedArticlesSection && savedArticlesSection.style.display === 'block') { 
-                if (filterText !== '' && visibleArticlesCount === 0) {
-                    generatorControls.style.display = 'block'; noSearchResultsMessage.style.display = 'block';
-                    generateNewButton.style.display = 'block'; generateNewButton.disabled = false;
-                } else { generatorControls.style.display = 'none'; }
-            } else { generatorControls.style.display = 'none'; }
+                if (filterText !== '' && visibleArticlesCount === 0 && allSavedArticlesData.length > 0) { // Показываем, если есть что фильтровать, но не нашлось
+                    generatorControls.style.display = 'block'; 
+                    noSearchResultsMessage.style.display = 'block';
+                    generateNewButton.style.display = 'block'; 
+                    generateNewButton.disabled = false;
+                } else if (filterText !== '' && allSavedArticlesData.length === 0) { // Если статей вообще нет, но что-то введено в поиск
+                     generatorControls.style.display = 'block'; 
+                     noSearchResultsMessage.style.display = 'block'; // Можно изменить текст
+                     generateNewButton.style.display = 'block'; 
+                     generateNewButton.disabled = false;
+                }
+                else { 
+                    generatorControls.style.display = 'none'; 
+                }
+            } else { 
+                 generatorControls.style.display = 'none'; 
+            }
         }
     }
 
     if (searchInput) { 
         searchInput.addEventListener('input', function() {
-            if (newArticleOutput && newArticleOutput.style.display === 'block' && 
-                !newArticleOutput.querySelector('#evoPublishGeneratedArticleButton')) {
-                // Если открыта полная статья (не предпросмотр сгенерированной), и пользователь начал печатать в поиске,
-                // то пока ничего не делаем, showView('list') сработает при следующем filterAndManageUI
+            if (authFormsSection && authFormsSection.style.display === 'block') {
+                // Если открыты формы логина/регистрации, не переключаем вид при вводе в поиск
+            } else {
+                 showView('list'); // Переключаемся на вид списка при вводе в поиск
             }
-            showView('list'); 
         });
     }
 
-    async function publishGeneratedArticle(title, contentHtml, searchQuery) { /* ... твой код из предыдущего script.js ... */ 
+    async function publishGeneratedArticle(title, contentHtml, searchQuery) { 
         const publishButton = document.getElementById('evoPublishGeneratedArticleButton');
         loadingIndicatorShow("Публикация статьи...");
-        if (generateNewButton) generateNewButton.disabled = true; 
+        if (generateNewButton) generateNewButton.disabled = true; // Блокируем и кнопку генерации
         if (publishButton) publishButton.disabled = true;
         try {
             const response = await fetch(`${backendUrl}/api/articles`, { 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title: title, content_html: contentHtml, search_query: searchQuery })
             });
-            if (!response.ok) { throw new Error(`Ошибка публикации: ${response.status}`); }
+            if (!response.ok) { 
+                let errorText = `Ошибка публикации: ${response.status}`;
+                try{const eD=await response.json(); errorText = eD.error || errorText;}catch(e){}
+                throw new Error(errorText); 
+            }
             alert('Статья успешно опубликована!');
             if (searchInput) searchInput.value = ''; 
-            await fetchAndDisplaySavedArticles(); 
+            await fetchAndDisplaySavedArticles(); // Это уже вызовет showView('list') и filterAndManageUI
         } catch (error) {
             alert(`Не удалось опубликовать статью: ${error.message}`);
-            if (generateNewButton) generateNewButton.disabled = false; 
-            if(publishButton) publishButton.disabled = false; 
-        } finally { loadingIndicatorHide("Идет генерация статьи, пожалуйста, подождите..."); }
+            if (generateNewButton && generatorControls && generatorControls.style.display === 'block') {
+                 generateNewButton.disabled = false; // Разблокируем, если она была видима
+            }
+            if(publishButton) publishButton.disabled = false; // Разблокируем кнопку публикации
+        } finally { 
+            loadingIndicatorHide("Идет генерация статьи, пожалуйста, подождите..."); 
+        }
     }
 
     if (generateNewButton) {
-        generateNewButton.addEventListener('click', async function() { /* ... твой код из предыдущего script.js ... */ 
+        generateNewButton.addEventListener('click', async function() { 
             if (!searchInput) return;
             const userQuery = searchInput.value.trim();
             if (!userQuery) { alert('Введите тему для генерации.'); return; }
@@ -498,29 +470,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`${backendUrl}/generate-article`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: userQuery }) 
                 });
-                if (!response.ok) { throw new Error(`Ошибка генерации: ${response.status}`); }
+                if (!response.ok) { 
+                    let errorText = `Ошибка генерации: ${response.status}`;
+                    try{const eD=await response.json(); errorText = eD.error || errorText;}catch(e){}
+                    throw new Error(errorText); 
+                }
                 const data = await response.json();
                 if (newArticleOutput) {
-                    newArticleOutput.innerHTML = data.article; // Просто вставляем HTML от ИИ
+                    // Вставляем HTML от ИИ (он уже должен содержать главный заголовок)
+                    newArticleOutput.innerHTML = data.article; 
+                    
+                    const existingPublishButton = document.getElementById('evoPublishGeneratedArticleButton');
+                    if (existingPublishButton) existingPublishButton.remove(); 
+                    const existingHr = newArticleOutput.querySelector('hr.publish-separator');
+                    if (existingHr) existingHr.remove();
+
                     const publishButton = document.createElement('button');
                     publishButton.id = 'evoPublishGeneratedArticleButton';
                     publishButton.textContent = 'Опубликовать эту статью';
-                    // Стили для кнопки публикации уже есть в CSS, но можно и здесь задать, если нужно переопределить
+                    // Стили для кнопки уже есть в CSS
                     publishButton.addEventListener('click', function() {
                         let articleHtmlToPublish = newArticleOutput.innerHTML;
-                        const buttonToRemove = newArticleOutput.querySelector('#evoPublishGeneratedArticleButton');
-                        const hrToRemove = newArticleOutput.querySelector('hr.publish-separator'); // Предполагаем, что у hr есть такой класс
-                        if(buttonToRemove) articleHtmlToPublish = articleHtmlToPublish.replace(buttonToRemove.outerHTML, '');
-                        if(hrToRemove) articleHtmlToPublish = articleHtmlToPublish.replace(hrToRemove.outerHTML, '');
-                        publishGeneratedArticle(userQuery, articleHtmlToPublish.trim(), userQuery);
+                        // Извлекаем заголовок ИЗ СГЕНЕРИРОВАННОГО HTML для публикации
+                        let articleTitleForPublish = userQuery; // Заголовок по умолчанию - это поисковый запрос
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data.article; // Парсим HTML, который пришел от ИИ
+                        const h2Element = tempDiv.querySelector('h2'); // Ищем первый H2
+                        if (h2Element && h2Element.textContent.trim()) {
+                            articleTitleForPublish = h2Element.textContent.trim();
+                        }
+                        
+                        // Удаляем кнопку и разделитель перед сохранением HTML
+                        const buttonToRemoveHTML = newArticleOutput.querySelector('#evoPublishGeneratedArticleButton');
+                        const hrToRemoveHTML = newArticleOutput.querySelector('hr.publish-separator');
+                        let finalHtmlToPublish = data.article; // Берем исходный HTML от ИИ
+                        // Если кнопка и hr были добавлены в newArticleOutput.innerHTML, их нужно удалять оттуда
+                        // Но лучше передавать в publishGeneratedArticle чистый data.article
+                        
+                        publishGeneratedArticle(articleTitleForPublish, data.article, userQuery);
                     });
-                    const hrElement = document.createElement('hr'); hrElement.className = 'publish-separator'; // Даем класс для возможного удаления
-                    newArticleOutput.appendChild(hrElement); newArticleOutput.appendChild(publishButton);
+                    const hrElement = document.createElement('hr'); hrElement.className = 'publish-separator'; 
+                    newArticleOutput.appendChild(hrElement); 
+                    newArticleOutput.appendChild(publishButton);
                 }
             } catch (error) { 
-                if (newArticleOutput) newArticleOutput.innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+                if (newArticleOutput) newArticleOutput.innerHTML = `<p style="color: red;">Произошла ошибка при генерации: ${error.message}</p>`;
                  showView('list'); 
-            } finally { loadingIndicatorHide(); filterAndManageUI(); }
+            } 
+            finally { 
+                loadingIndicatorHide(); 
+                // filterAndManageUI() вызовется из showView('list'), если была ошибка,
+                // или останется на виде 'generating' (который покажет newArticleOutput) если успешно.
+                // Если успешно, то showView('generating') оставит newArticleOutput видимым.
+                // Нужно решить, переключать ли на 'list' после генерации или оставлять предпросмотр.
+                // Пока оставляем так: если ошибка - на список, если успех - остается предпросмотр.
+                if (!newArticleOutput.querySelector('#evoPublishGeneratedArticleButton') && newArticleOutput.style.display === 'block'){
+                     // Если была ошибка и нет кнопки публикации, значит, нужно показать список
+                     showView('list');
+                } else if (newArticleOutput.style.display === 'block') {
+                    // Если есть кнопка публикации, значит, мы на виде предпросмотра
+                    // filterAndManageUI() не нужен, т.к. список статей скрыт
+                } else {
+                    filterAndManageUI(); // Если что-то пошло не так и мы не на предпросмотре
+                }
+            }
         });
     }
 
@@ -529,10 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("EvoLogia: Инициализация приложения...");
         await checkAuthState(); 
         if (articleListContainer) { 
-          await fetchAndDisplaySavedArticles(); 
+          await fetchAndDisplaySavedArticles(); // Это вызовет showView('list') и filterAndManageUI в конце
         } else {
-          showView('list'); 
-          filterAndManageUI(); 
+          showView('list'); // Если нет контейнера, просто показываем вид списка по умолчанию
         }
         console.log("EvoLogia: Приложение инициализировано.");
     }
