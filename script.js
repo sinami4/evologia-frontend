@@ -326,16 +326,29 @@ document.addEventListener('DOMContentLoaded', function() {
         return commentDiv;
     }
 
-    async function displayFullArticle(articleId) { /* ... твой код из предыдущего script.js, с адаптацией для auth ... */
-        if (!newArticleOutput || !loadingIndicator) { console.error("EvoLogia: Отсутствуют элементы DOM для displayFullArticle."); return; }
+        async function displayFullArticle(articleId) {
+        if (!newArticleOutput || !loadingIndicator) { 
+            console.error("EvoLogia: Отсутствуют элементы DOM для displayFullArticle."); 
+            return; 
+        }
         showView('generating'); 
         loadingIndicatorShow('Загрузка статьи и комментариев...');
         newArticleOutput.innerHTML = ''; 
         try {
             const articleResponse = await fetch(`${backendUrl}/api/articles/${articleId}`);
-            if (!articleResponse.ok) { throw new Error(`Ошибка загрузки статьи: ${articleResponse.status}`); }
+            if (!articleResponse.ok) { 
+                let errorText = `Ошибка загрузки статьи: ${articleResponse.status}`;
+                try { const errorData = await articleResponse.json(); errorText = errorData.error || errorText; } catch(e){}
+                throw new Error(errorText); 
+            }
             const fullArticleData = await articleResponse.json();
-            newArticleOutput.innerHTML = `<h2>${fullArticleData.title}</h2>` + fullArticleData.content_html; 
+            console.log('EvoLogia: Полная статья получена:', fullArticleData);
+
+            // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+            // Мы больше не добавляем заголовок fullArticleData.title вручную,
+            // так как предполагаем, что content_html от ИИ уже содержит главный заголовок.
+            newArticleOutput.innerHTML = fullArticleData.content_html; 
+            // --- КОНЕЦ ИЗМЕНЕНИЯ ---
             
             const commentsSectionDiv = document.createElement('div'); commentsSectionDiv.id = 'comments-section';
             commentsSectionDiv.innerHTML = '<h3>Комментарии:</h3>'; 
@@ -344,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const hrComments = document.createElement('hr'); hrComments.style.cssText = "margin-top:25px; margin-bottom:20px;";
             newArticleOutput.appendChild(hrComments); newArticleOutput.appendChild(commentsSectionDiv);
 
+            // Загрузка и отображение комментариев (твой существующий код)
             try {
                 const commentsResponse = await fetch(`${backendUrl}/api/articles/${articleId}/comments`);
                 if (commentsResponse.ok) {
@@ -354,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else { commentsListDiv.innerHTML = '<p style="color: #777;">Не удалось загрузить комментарии.</p>'; }
             } catch (commentsError) { commentsListDiv.innerHTML = `<p style="color: red;">Ошибка загрузки комментариев.</p>`; }
             
+            // Форма добавления комментария (твой существующий код с адаптацией для currentUser)
             const addCommentForm = document.createElement('form'); addCommentForm.id = 'add-comment-form';
             addCommentForm.innerHTML = `<h4>Оставить комментарий:</h4>
                 <div id="commentAuthorNameDiv"><label for="commentAuthorNameInput">Ваше имя (если не вошли):</label><input type="text" id="commentAuthorNameInput" name="author_name" maxlength="100"></div>
@@ -363,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const authorNameFieldDiv = addCommentForm.querySelector('#commentAuthorNameDiv');
             if (currentUser && authorNameFieldDiv) { authorNameFieldDiv.style.display = 'none'; }
-            else if (authorNameFieldDiv) { authorNameFieldDiv.style.display = 'block';} // Показываем, если не залогинен
+            else if (authorNameFieldDiv) { authorNameFieldDiv.style.display = 'block';}
             
             addCommentForm.addEventListener('submit', async function(event) {
                 event.preventDefault(); 
@@ -389,41 +404,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     commentsListDiv.appendChild(renderCommentItem(newCommentData.comment));
                     document.getElementById('commentTextInput').value = '';
                     const authorInput = document.getElementById('commentAuthorNameInput'); if(authorInput) authorInput.value = '';
-                } catch (error) { alert(`Ошибка: ${error.message}`); } 
+                } catch (error) { alert(`Не удалось отправить комментарий: ${error.message}`); } 
                 finally { if(submitButton) submitButton.disabled = false; }
             });
+            
             const backButton = document.createElement('button'); backButton.id = 'evoBackToListButton';
-            backButton.textContent = '‹ Назад к списку'; /* Стили кнопки из CSS */
+            backButton.textContent = '‹ Назад к списку статей'; 
             backButton.addEventListener('click', function() { showView('list'); });
             const hrAfter = document.createElement('hr'); hrAfter.style.marginTop = '20px';
             newArticleOutput.appendChild(hrAfter); newArticleOutput.appendChild(backButton); 
             showView('fullArticle'); 
         } catch (error) { 
-            newArticleOutput.innerHTML = `<p style="color:red;">Ошибка загрузки статьи: ${error.message}</p>`;
-            const backOnError = document.createElement('button'); backOnError.textContent = '‹ Назад';
-            backOnError.id = 'evoBackToListButton'; // Используем тот же ID для стилей
+            newArticleOutput.innerHTML = `<p style="color:red; text-align:center;">Не удалось загрузить статью: ${error.message}</p>`;
+            const backOnError = document.createElement('button'); backOnError.textContent = '‹ Назад к списку';
+            backOnError.id = 'evoBackToListButton'; 
             backOnError.onclick = () => showView('list'); newArticleOutput.appendChild(backOnError);
             showView('fullArticle');
         } finally { loadingIndicatorHide('Идет генерация статьи, пожалуйста, подождите...'); }
-    }
-    
-    async function fetchAndDisplaySavedArticles() { /* ... твой код из предыдущего script.js ... */ 
-        if (!articleListContainer) { console.error("EvoLogia: articleListContainer не найден."); return; }
-        if (noSavedArticlesMessage) noSavedArticlesMessage.style.display = 'none';
-        articleListContainer.innerHTML = '<p style="text-align:center; color:#777;">Загрузка сохраненных статей...</p>'; 
-        try {
-            const response = await fetch(`${backendUrl}/api/articles`);
-            if (!response.ok) { throw new Error(`Ошибка сервера: ${response.status}`);}
-            const responseData = await response.json(); 
-            allSavedArticlesData = (responseData && Array.isArray(responseData.articles)) ? responseData.articles : [];
-            articleListContainer.innerHTML = ''; 
-            if (allSavedArticlesData.length > 0) {
-                allSavedArticlesData.forEach(article => articleListContainer.appendChild(renderSavedArticleItem(article)));
-            }
-        } catch (error) { 
-            if (articleListContainer) articleListContainer.innerHTML = `<p style="color: red;">Ошибка загрузки статей: ${error.message}</p>`;
-            allSavedArticlesData = []; 
-        } finally { showView('list'); /* filterAndManageUI вызовется из showView */ }
     }
 
     function filterAndManageUI() { /* ... твой код из предыдущего script.js ... */ 
@@ -504,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) { throw new Error(`Ошибка генерации: ${response.status}`); }
                 const data = await response.json();
                 if (newArticleOutput) {
-                    newArticleOutput.innerHTML = `<h2>${userQuery}</h2>` + data.article; 
+                    newArticleOutput.innerHTML = data.article; // Просто вставляем HTML от ИИ
                     const publishButton = document.createElement('button');
                     publishButton.id = 'evoPublishGeneratedArticleButton';
                     publishButton.textContent = 'Опубликовать эту статью';
